@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Tài Xỉu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+        .dice {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            margin: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #betting {
+            margin-top: 20px;
+        }
+        #betResult {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        #history {
+            margin-top: 20px;
+            text-align: left;
+        }
+        #rules {
+            margin-top: 20px;
+            text-align: left;
+        }
+        #resultsTable {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        #resultsTable th, #resultsTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        #resultsTable th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .celebrate {
+            font-size: 24px;
+            color: green;
+            margin-top: 20px;
+            display: none;
+        }
+        .lose {
+            font-size: 24px;
+            color: red;
+            margin-top: 20px;
+            display: none;
+        }
+        .overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: black;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Tài Xỉu</h1>
+        <p>Nhấn nút để quay xúc xắc!</p>
+        <div id="diceContainer" style="position: relative;">
+            <img class="dice" id="dice1" src="dice-w900.jpg" alt="Xúc Xắc 1">
+            <img class="dice" id="dice2" src="dice-w900.jpg" alt="Xúc Xắc 2">
+            <img class="dice" id="dice3" src="dice-w900.jpg" alt="Xúc Xắc 3">
+            <div class="overlay" id="overlay">Nhà Cái Đang Vào Việc</div>
+        </div>
+        <button id="rollButton">Mất Tiền</button>
+
+        <div id="betting">
+            <h2>Đặt Cược</h2>
+            <label for="betAmount">Số tiền đặt cược:</label>
+            <input type="number" id="betAmount" min="1" value="1">
+            <div>
+                <label for="betChoice">Chọn cược:</label>
+                <select id="betChoice">
+                    <option value="tai">Tài</option>
+                    <option value="xiu">Xỉu</option>
+                </select>
+            </div>
+            <button id="betButton">Đặt Cược</button>
+            <h3 id="betResult"></h3>
+        </div>
+
+        <h2 id="result"></h2>
+        <div class="celebrate" id="winMessage">Chúc mừng! Bạn đã thắng!</div>
+        <div class="lose" id="loseMessage">Nhà Cái Thắng ! NGU</div>
+
+        <div id="history">
+            <h3>Lịch Sử Cược</h3>
+            <ul id="betHistory"></ul>
+        </div>
+
+        <div id="resultsTableContainer">
+            <h3>Kết Quả Gần Đây</h3>
+            <table id="resultsTable">
+                <tr>
+                    <th>Vòng</th>
+                    <th>Tổng</th>
+                    <th>Kết Quả</th>
+                </tr>
+            </table>
+        </div>
+
+        <div id="rules">
+            <h3>Quy Tắc Chơi</h3>
+            <p>Khi tổng số xúc xắc lớn hơn 10, bạn thắng nếu chọn Tài!</p>
+            <p>Khi tổng số xúc xắc nhỏ hơn hoặc bằng 10, bạn thắng nếu chọn Xỉu!</p>
+        </div>
+    </div>
+
+    <script>
+        let totalBet = 0;
+        let betHistory = [];
+        let roundResults = [];
+        let roundCount = 1;
+
+        document.getElementById('rollButton').addEventListener('click', function() {
+            // Tạo số ngẫu nhiên cho mỗi xúc xắc
+            let dice1 = Math.floor(Math.random() * 6) + 1;
+            let dice2 = Math.floor(Math.random() * 6) + 1;
+            let dice3 = Math.floor(Math.random() * 6) + 1;
+
+            // Cập nhật hiển thị xúc xắc
+            document.getElementById('dice1').src = `https://via.placeholder.com/60?text=${dice1}`;
+            document.getElementById('dice2').src = `https://via.placeholder.com/60?text=${dice2}`;
+            document.getElementById('dice3').src = `https://via.placeholder.com/60?text=${dice3}`;
+
+            // Hiển thị thông báo chờ và ẩn kết quả
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('result').textContent = '';
+
+            // Đếm ngược và hiển thị kết quả
+            setTimeout(() => {
+                let total = dice1 + dice2 + dice3;
+                document.getElementById('result').textContent = 'Tổng: ' + total;
+                document.getElementById('overlay').style.display = 'none';
+                checkBet(total);
+                updateResultsTable(total);
+            }, 2000); // Thời gian chờ 2 giây
+        });
+
+        document.getElementById('betButton').addEventListener('click', function() {
+            let betAmount = parseInt(document.getElementById('betAmount').value);
+            let betChoice = document.getElementById('betChoice').value;
+            totalBet += betAmount;
+            document.getElementById('betResult').textContent = 'Bạn đã đặt cược: ' + totalBet + ' đơn vị';
+
+            // Thêm lịch sử cược
+            betHistory.push(`Cược: ${betChoice}, Số tiền: ${betAmount}`);
+            updateBetHistory();
+        });
+
+        function checkBet(total) {
+            let betAmount = parseInt(document.getElementById('betAmount').value);
+            let betChoice = document.getElementById('betChoice').value;
+            let resultMessage = '';
+            document.getElementById('winMessage').style.display = 'none';
+            document.getElementById('loseMessage').style.display = 'none';
+
+            if ((total > 10 && betChoice === 'tai') || (total <= 10 && betChoice === 'xiu')) {
+                resultMessage = `Bạn thắng! Giành được ${betAmount * 2} đơn vị!`;
+                document.getElementById('winMessage').style.display = 'block';
+            } else {
+                resultMessage = `Bạn thua! Mất ${betAmount} đơn vị.`;
+                document.getElementById('loseMessage').style.display = 'block';
+            }
+
+            document.getElementById('betResult').textContent += ' - ' + resultMessage;
+        }
+
+        function updateBetHistory() {
+            const historyList = document.getElementById('betHistory');
+            historyList.innerHTML = '';
+            betHistory.forEach(function(item) {
+                const li = document.createElement('li');
+                li.textContent = item;
+                historyList.appendChild(li);
+            });
+        }
+
+        function updateResultsTable(total) {
+            const resultsTable = document.getElementById('resultsTable');
+            const newRow = resultsTable.insertRow();
+            newRow.insertCell(0).textContent = roundCount++;
+            newRow.insertCell(1).textContent = total;
+            newRow.insertCell(2).textContent = total > 10 ? 'Tài' : 'Xỉu';
+        }
+    </script>
+
+</body>
+</html>
